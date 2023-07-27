@@ -1,0 +1,15 @@
+{
+  "id": "com.vatom.photobooth",
+  "name": "Photo Booth",
+  "version": "1.0.0",
+  "beta": true,
+  "pluginType": "Personal",
+  "description": "Allow users to pose and take photos as a group.",
+  "longDescription": ".",
+  "configuration": ".",
+  "category": "Fun",
+  "businessId": ".",
+  "price": 0,
+  "releaseNotes": ".",
+  "entrypoint": ""
+}
