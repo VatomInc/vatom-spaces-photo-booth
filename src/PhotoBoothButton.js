@@ -1,10 +1,10 @@
-import { BaseComponent } from "vatom-spaces-plugins"
 import { getDistanceBetweenComponents, isInsizeZone } from "./Utilities"
+import { BasePhotoComponent } from "./BasePhotoComponent"
 
 /**
  * This Component provides a button to activate the nearest Photo Booth Zone.
  */
-export class PhotoBoothButton extends BaseComponent {
+export class PhotoBoothButton extends BasePhotoComponent {
 
     /** Register the component */
     static register(plugin) {

@@ -1,10 +1,12 @@
-import { BaseComponent } from "vatom-spaces-plugins"
-import { isInsizeZone, panelHTML } from "./Utilities"
+import { isInsizeZone } from "./Utilities"
+import { PanelInterface } from "./PanelInterface"
+import { PhotoBoothCamera } from "./PhotoBoothCamera"
+import { BasePhotoComponent } from "./BasePhotoComponent"
 
 /**
  * This Component provides the logic for the photo booth zone.
  */
-export class PhotoBoothZone extends BaseComponent {
+export class PhotoBoothZone extends BasePhotoComponent {
 
     /** This is a photo booth zone */
     isPhotoBoothZone = true
@@ -24,6 +26,7 @@ export class PhotoBoothZone extends BaseComponent {
                 { id: 'info', type: 'label', value: `This defines the region where users will stand when taking the photo.` },
                 { id: 'activation-mode', name: 'Activation Mode', type: 'select', values: ['None', 'Toast', 'Menubar Button'], help: `<b>None:</b> No automatic activation. You can still trigger the Photo Booth by adding the Photo Booth Button component to another in-world item.<br/><br/><b>Toast:</b> When the user steps into the zone, a Toast will appear asking them if they want to take a photo.<br/><br/><b>Menubar Button:</b> When the user is within the zone, a menubar button is added to take a photo.` },
                 { id: 'activation-text', name: 'Prompt', help: `The text displayed to prompt the user to take a photo. This is only used when the Activation Mode is set to Toast.`, type: 'text' },
+                { id: 'overlay-image', name: 'Overlay Image', help: `The image to display over the image.`, type: 'file' },
             ]
         })
 
@@ -119,7 +122,6 @@ export class PhotoBoothZone extends BaseComponent {
             return
 
         // Check message
-        console.log('msg', data, from)
         if (data.action == 'remote:activate-photo-booth') {
 
             // Activate as well, if we are inside the zone
@@ -147,6 +149,13 @@ export class PhotoBoothZone extends BaseComponent {
      */
     async activate(triggeredBy = null) {
 
+        // Only do one at a time
+        if (this._isActivating) return
+        this._isActivating = true
+
+        // Toast
+        let toastID = null
+
         // Catch errors
         try {
 
@@ -170,8 +179,8 @@ export class PhotoBoothZone extends BaseComponent {
             if (this.toastID) this.plugin.menus.closeToast(this.toastID)
             this.toastID = null
 
-            // Create overlay html
-            let overlayHTML = panelHTML(`
+            // Show countdown UI
+            await PanelInterface.createOverlay(`
                 <style>
                     .container { 
                         position: absolute; 
@@ -219,27 +228,105 @@ export class PhotoBoothZone extends BaseComponent {
                 </script>
             `)
 
-            // Show countdown UI
-            console.log(`[Photo Booth] Taking photo!`)
-            let overlayID = await this.plugin.menus.register({
-                title: 'Photo Booth Overlay',
-                section: 'overlay-top',
-                panel: {
-                    iframeURL: overlayHTML
-                }
-            })
-
-            // Remove overlay after all it's animations complete
-            setTimeout(() => this.plugin.menus.unregister(overlayID), 15 * 1000)
-
             // Wait for countdown to complete
             await new Promise(resolve => setTimeout(resolve, 3000))
+
+            // Get image details
+            let width = 3840
+            let height = 2160
+            let overlayImageURL = this.getField('overlay-image')
+
+            // Image capture options
+            let captureOptions = {
+                format: 'image/jpg', 
+                quality: 0.95, 
+                width, 
+                height, 
+                hideNameTags: true
+            }
+
+            // Get nearest camera
+            let camera = PhotoBoothCamera.getNearestToPosition(this.fields.world_center_x, this.fields.world_center_y, this.fields.world_center_z)
+            if (camera) {
+
+                // Adjust camera position to look at the zone
+                captureOptions.cameraPosition = {
+                    x: camera.fields.world_center_x,
+                    y: camera.fields.world_center_y,
+                    z: camera.fields.world_center_z,
+                }
+                captureOptions.cameraTarget = {
+                    x: this.fields.world_center_x,
+                    y: this.fields.world_center_y + 1.5,
+                    z: this.fields.world_center_z,
+                }
+
+            }
+
+            // Check if there's an overlay image
+            console.log(`[Photo Booth] Taking photo!`)
+            let photoBlob = null
+            if (overlayImageURL) {
+
+                // Take photo at full quality
+                let photoDataURI = await this.plugin.world.captureImage({ ...captureOptions, quality: 1, format: 'image/png' })
+
+                // Convert to blob
+                let photoBlob = await fetch(photoDataURI).then(r => r.blob())
+
+                // Draw to canvas
+                let canvas = new OffscreenCanvas(width, height)
+                let ctx = canvas.getContext('2d')
+                let img = await createImageBitmap(photoBlob)
+                ctx.clearRect(0, 0, width, height)
+                ctx.drawImage(img, 0, 0)
+
+                // Add overlay
+                let overlayBlob = await fetch(this.getField('overlay-image')).then(r => r.blob())
+                let overlayImg = await createImageBitmap(overlayBlob)
+                ctx.drawImage(overlayImg, 0, 0, width, height)
+
+                // Generate compressed image
+                photoBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.95 })
+
+            } else {
+
+                // Take photo at comprssed quality
+                photoBlob = await this.plugin.world.captureImage(captureOptions)
+
+            }
+
+            // Save jpeg to file storage
+            toastID = await this.plugin.menus.toast({ text: 'Saving photo...', isSticky: true })
+            let userID = await this.plugin.user.getID()
+            let userIDSafe = userID.replace(/[^0-9A-Za-z]/g, '_')
+            let date = Date.now()
+            let photoURL = await this.plugin.storage.put('plugin', `${userIDSafe}/Photo ${date}.jpg`, photoBlob)
+
+            // Done
+            console.debug(`[Photo Booth] Photo saved to: `, photoURL)
+
+            // Show completion toast
+            this.plugin.menus.closeToast(toastID)
+            await this.plugin.menus.toast({ 
+                text: 'Photo saved!', 
+                buttonAction: () => this.plugin.openPhotoList(),
+                buttonText: 'View Photos',
+            })
 
         } catch (err) {
 
             // Log error
             console.error(`[Photo Booth] Error taking photo:`, err)
             this.plugin.menus.alert(err.message, "Unable to take photo", "error")
+
+        } finally {
+
+            // Hide toast if it exists
+            if (toastID) this.plugin.menus.closeToast(toastID)
+
+            // Done
+            this._isActivating = false
 
         }
 
