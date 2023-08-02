@@ -24,30 +24,15 @@ export class PhotoBoothButton extends BasePhotoComponent {
     /** Called on click */
     onClick() {
 
-        // Find the nearest photo zone
-        let nearestZone = this.plugin.objects.getComponentInstances().filter(c => c.isPhotoBoothZone).reduce((prev, current) => {
-
-            // If no previous, use current
-            if (!prev)
-                return current
-
-            // Get distance to current
-            let prevDist = getDistanceBetweenComponents(this, prev)
-            let currentDist = getDistanceBetweenComponents(this, current)
-
-            // Return the closest
-            return prevDist < currentDist ? prev : current
-
-        }, null)
-
         // Stop if no zone
-        if (!nearestZone) {
+        if (!this.associatedZone) {
             console.warn("No Photo Booth Zone found")
             this.plugin.menus.alert("No Photo Booth Zone found nearby.", "There was a problem", "error")
+            return
         }
 
         // Activate the zone
-        nearestZone.activate()
+        this.associatedZone.activate()
 
     }
 

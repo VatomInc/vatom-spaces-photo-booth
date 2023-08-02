@@ -5,24 +5,17 @@ import { BaseComponent } from "vatom-spaces-plugins"
  */
 export class BasePhotoComponent extends BaseComponent {
 
-    /** Get the nearest zone to the user */
-    static async getNearestToUser() {
-
-        // Get user position
-        let userPos = await plugin.user.getPosition()
-
-        // Done
-        return this.getNearestToPosition(userPos.x, userPos.y, userPos.z)
-
-    }
-
     /** Get nearest to the specified position */
-    static getNearestToPosition(x, y, z) {
+    static getNearestToPosition(x, y, z, filterOp = null) {
+
+        // Create default filterOp
+        if (!filterOp)
+            filterOp = c => c instanceof this
 
         // Find nearest camera
         let nearest = null
         let nearestDist = null
-        plugin.objects.getComponentInstances().filter(c => c instanceof this).forEach(c => {
+        plugin.objects.getComponentInstances().filter(filterOp).forEach(c => {
             let dist = Math.sqrt((c.fields.world_center_x - x) ** 2 + (c.fields.world_center_y - y) ** 2 + (c.fields.world_center_z - z) ** 2)
             if (!nearest || dist < nearestDist) {
                 nearest = c
@@ -32,6 +25,29 @@ export class BasePhotoComponent extends BaseComponent {
 
         // Done
         return nearest
+
+    }
+
+    /** Get the nearest to the user */
+    static async getNearestToUser(filterOp = null) {
+
+        // Get user position
+        let userPos = await plugin.user.getPosition()
+
+        // Done
+        return this.getNearestToPosition(userPos.x, userPos.y, userPos.z, filterOp)
+
+    }
+
+    /** @returns {PhotoBoothZone} Get associated (nearest) zone. */
+    get associatedZone() {
+
+        // Stop if we're a zone, can't associate with self
+        if (this.isPhotoBoothZone)
+            return null
+
+        // Get nearest zone
+        return BasePhotoComponent.getNearestToPosition(this.fields.world_center_x, this.fields.world_center_y, this.fields.world_center_z, c => c.isPhotoBoothZone)
 
     }
 

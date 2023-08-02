@@ -24,9 +24,11 @@ export class PhotoBoothZone extends BasePhotoComponent {
             description: 'Add this to a Zone to specify the region where users will stand when taking the photo.',
             settings: [
                 { id: 'info', type: 'label', value: `This defines the region where users will stand when taking the photo.` },
-                { id: 'activation-mode', name: 'Activation Mode', type: 'select', values: ['None', 'Toast', 'Menubar Button'], help: `<b>None:</b> No automatic activation. You can still trigger the Photo Booth by adding the Photo Booth Button component to another in-world item.<br/><br/><b>Toast:</b> When the user steps into the zone, a Toast will appear asking them if they want to take a photo.<br/><br/><b>Menubar Button:</b> When the user is within the zone, a menubar button is added to take a photo.` },
+                { id: 'activation-mode', name: 'Activation mode', type: 'select', values: ['None', 'Toast', 'Menubar Button'], help: `<b>None:</b> No automatic activation. You can still trigger the Photo Booth by adding the Photo Booth Button component to another in-world item.<br/><br/><b>Toast:</b> When the user steps into the zone, a Toast will appear asking them if they want to take a photo.<br/><br/><b>Menubar Button:</b> When the user is within the zone, a menubar button is added to take a photo.` },
                 { id: 'activation-text', name: 'Prompt', help: `The text displayed to prompt the user to take a photo. This is only used when the Activation Mode is set to Toast.`, type: 'text' },
-                { id: 'overlay-image', name: 'Overlay Image', help: `The image to display over the image.`, type: 'file' },
+                { id: 'overlay-image', name: 'Overlay image', help: `The image to display over the image.`, type: 'file' },
+                // { id: 'use-nearby-camera', name: 'Use nearby camera', help: `If enabled, the nearest camera will be used when taking the photo. If disabled, will use the user's current viewport camera.`, type: 'checkbox' },
+                { id: 'do-activate', name: 'Take Photo', type: 'button', help: `Take a photo now.` }
             ]
         })
 
@@ -142,6 +144,11 @@ export class PhotoBoothZone extends BasePhotoComponent {
 
     }
 
+    /** Called when an action button is triggered */
+    async onAction(id) {
+        if (id == 'do-activate') this.activate()
+    }
+
     /** 
      * Activate. This takes a photo. 
      * 
@@ -232,8 +239,8 @@ export class PhotoBoothZone extends BasePhotoComponent {
             await new Promise(resolve => setTimeout(resolve, 3000))
 
             // Get image details
-            let width = 3840
-            let height = 2160
+            let width = 1920
+            let height = 1080
             let overlayImageURL = this.getField('overlay-image')
 
             // Image capture options
@@ -246,7 +253,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
             }
 
             // Get nearest camera
-            let camera = PhotoBoothCamera.getNearestToPosition(this.fields.world_center_x, this.fields.world_center_y, this.fields.world_center_z)
+            let camera = this.plugin.objects.getComponentInstances().find(c => c.isPhotoBoothCamera && c.associatedZone == this)
             if (camera) {
 
                 // Adjust camera position to look at the zone
@@ -257,7 +264,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 }
                 captureOptions.cameraTarget = {
                     x: this.fields.world_center_x,
-                    y: this.fields.world_center_y + 1.5,
+                    y: this.fields.world_center_y - this.fields.world_bounds_y/2 + 1.5,
                     z: this.fields.world_center_z,
                 }
 

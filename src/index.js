@@ -30,9 +30,37 @@ export default class PhotoBoothPlugin extends BasePlugin {
 
         // Register photo button
         this.menus.register({
-            text: 'Photo Booth',
+            text: 'My Photos',
             icon: this.paths.absolute('camerabutton.svg'),
             action: () => this.openPhotoList(),
+        })
+
+        // Register Insert menu items
+        this.menus.register({
+            section: 'insert-object',
+            text: 'Photo Booth',
+            icon: this.paths.absolute('camerabutton.svg'),
+            action: () => this.insertPhotoBooth()
+        })
+        this.menus.register({
+            section: 'insert-object',
+            text: 'Photo Booth > Camera',
+            icon: this.paths.absolute('camerabutton.svg'),
+            action: () => this.insertPhotoBoothCamera()
+        })
+
+        // Register settings
+        this.menus.register({
+            section: 'plugin-settings',
+            title: 'Photo Booth',
+            panel: {
+                fields: [
+                    { id: 'about-section', type: 'section', value: 'About' },
+                    { id: 'info', type: 'label', value: `This plugin allows you to create a photo booth experience in your space.` },
+                    { id: 'text-section', type: 'section', value: 'Text' },
+                    { id: 'no-photos-text', type: 'text', name: 'No photos', help: `Displayed in the photo list when the user has not taken any photos yet.` },
+                ]
+            }
         })
 
     }
@@ -128,7 +156,7 @@ export default class PhotoBoothPlugin extends BasePlugin {
         if (!photos.length) {
 
             // Add notice
-            htmlOutput = `<div class='notice'>No photos found.</div>`
+            htmlOutput = `<div class='notice'>${this.getField('no-photos-msg') || "No photos found. Look around for a nearby photo booth to take pictures."}</div>`
 
         } else {
 
@@ -140,6 +168,74 @@ export default class PhotoBoothPlugin extends BasePlugin {
 
         // Send to UI
         panel.updateElement('#photo-list', htmlOutput)
+
+    }
+
+    /** Called when the user selects Insert > Objects > Photo Booth. */
+    async insertPhotoBooth() {
+
+        // Get user position
+        let userPos = await this.user.getPosition()
+
+        // Create object
+        let objectID = await this.objects.create({
+
+            // Object info
+            name: 'Photo Booth',
+            type: 'zone',
+            show_wireframe: true,
+            clientOnly: false,
+
+            // Transform
+            x:      userPos.x,
+            height: userPos.y + 1.5,
+            y:      userPos.z,
+            scale_x: 5,
+            scale_y: 3.5,
+            scale_z: 5,
+
+            // Components
+            components: [
+                { id: 'com.vatom.photobooth:photozone' }
+            ],
+
+            // Photo Booth settings
+            "component:com.vatom.photobooth:photozone:activation-mode": "Toast",
+            "component:com.vatom.photobooth:photozone:use-nearby-camera": true,
+
+        })
+
+    }
+
+    /** Called when the user selects Insert > Objects > Photo Booth > Camera. */
+    async insertPhotoBoothCamera() {
+
+        // Get user position
+        let userPos = await this.user.getPosition()
+
+        // Create object
+        let objectID = await this.objects.create({
+
+            // Object info
+            name: 'Photo Booth - Camera',
+            type: 'cube',
+            color: '#00F',
+            clientOnly: false,
+
+            // Transform
+            x:      userPos.x,
+            height: userPos.y + 1.5,
+            y:      userPos.z,
+            scale_x: 0.2,
+            scale_y: 0.2,
+            scale_z: 0.2,
+
+            // Components
+            components: [
+                { id: 'com.vatom.photobooth:photocamera' }
+            ],
+
+        })
 
     }
 
