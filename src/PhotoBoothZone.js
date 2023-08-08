@@ -238,6 +238,12 @@ export class PhotoBoothZone extends BasePhotoComponent {
             // Wait for countdown to complete
             await new Promise(resolve => setTimeout(resolve, 3000))
 
+            // Show status
+            toastID = await this.plugin.menus.toast({ text: 'Saving photo...', isSticky: true })
+            let userID = await this.plugin.user.getID()
+            let userIDSafe = userID.replace(/[^0-9A-Za-z]/g, '_')
+            let date = Date.now()
+
             // Get image details
             let width = 1920
             let height = 1080
@@ -303,18 +309,37 @@ export class PhotoBoothZone extends BasePhotoComponent {
 
             }
 
+            // Create thumbnail version of the photo
+            let canvas = new OffscreenCanvas(512, 512 * (height/width))
+            let ctx = canvas.getContext('2d')
+            let img = await createImageBitmap(photoBlob)
+            ctx.clearRect(0, 0, 512, 512 * (height/width))
+            ctx.drawImage(img, 0, 0, 512, 512 * (height/width))
+            let thumbnailBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.6 })
+
+            // Run in parallel
+            await Promise.all([
+
+                // Save full jpeg to file storage
+                this.plugin.storage.put('plugin', `${userIDSafe}/Photo ${date}.jpg`, photoBlob),
+
+                // Save thumbnail jpeg to file storage
+                this.plugin.storage.put('plugin', `${userIDSafe}/Photo ${date} thumbnail.jpg`, thumbnailBlob),
+
+            ])
+
             // Save jpeg to file storage
-            toastID = await this.plugin.menus.toast({ text: 'Saving photo...', isSticky: true })
-            let userID = await this.plugin.user.getID()
-            let userIDSafe = userID.replace(/[^0-9A-Za-z]/g, '_')
-            let date = Date.now()
-            let photoURL = await this.plugin.storage.put('plugin', `${userIDSafe}/Photo ${date}.jpg`, photoBlob)
+            await this.plugin.storage.put('plugin', `${userIDSafe}/Photo ${date}.jpg`, photoBlob)
 
             // Done
-            console.debug(`[Photo Booth] Photo saved to: `, photoURL)
+            console.debug(`[Photo Booth] Photo saved!`)
+
+            // Close toast so it doesn't interfere with the next one
+            if (toastID) this.plugin.menus.closeToast(toastID)
+            toastID = null
+            await new Promise(c => setTimeout(c, 1000))
 
             // Show completion toast
-            this.plugin.menus.closeToast(toastID)
             await this.plugin.menus.toast({ 
                 text: 'Photo saved!', 
                 buttonAction: () => this.plugin.openPhotoList(),

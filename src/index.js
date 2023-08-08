@@ -66,11 +66,16 @@ export default class PhotoBoothPlugin extends BasePlugin {
         // Register File menu option to copy the share link
         this.menus.register({
             section: 'file-menu',
-            text: 'Photo Booth Dashboard',
+            text: 'View Photo Booth',
             icon: this.paths.absolute('camerabutton.svg'),
             action: async () => {
                 let spaceID = (await this.world.getID()).split(':')[0]
-                await this.app.openURL(`${this.paths.absolute('ui-build/index.html')}#/space/${spaceID}/photos`)
+                this.currentPopupID = await this.menus.displayPopup({
+                    panel: {
+                        hideTitlebar: true,
+                        iframeURL: `${this.paths.absolute('ui-build/index.html')}#/space/${spaceID}/photos`
+                    }
+                })
             }
         })
 
@@ -104,7 +109,7 @@ export default class PhotoBoothPlugin extends BasePlugin {
 
         // Get space and user ID
         let spaceID = (await this.world.getID()).split(':')[0]
-        let userID = await this.user.getID()
+        let userID = (await this.user.getID()).split(':')[1]
 
         // Show panel
         this.currentPopupID = await this.menus.displayPopup({

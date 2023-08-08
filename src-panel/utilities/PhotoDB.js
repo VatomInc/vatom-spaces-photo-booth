@@ -54,6 +54,26 @@ export class PhotoDB extends EventTarget {
         // Catch errors
         try {
 
+            // Check if we have a specific userID
+            if (this.userID) {
+
+                // Update status
+                this.statusText = 'Fetching photos...'
+                this.dispatchEvent(new Event('updated'))
+
+                // Just fetch the photos for that user
+                this.photos = await this.fetchPhotosForUser(this.userID)
+
+                // Sort photos by date descending
+                this.photos.sort((a, b) => b.date - a.date)
+
+                // Update status
+                this.statusText = ''
+                this.dispatchEvent(new Event('updated'))
+                return
+
+            }
+
             // Fetch folders in the space
             this.statusText = 'Fetching users...'
             this.dispatchEvent(new Event('updated'))
@@ -94,6 +114,7 @@ export class PhotoDB extends EventTarget {
             // Complete
             this.statusText = ''
             this.dispatchEvent(new Event('updated'))
+            console.log(this.photos)
 
         } catch (err) {
 
@@ -108,10 +129,6 @@ export class PhotoDB extends EventTarget {
 
     /** @private Fetch photos for a user */
     async fetchPhotosForUser(userID) {
-
-        // Check for specific userID
-        if (this.userID && this.userID !== userID)
-            return []
 
         // Fetch files in the space
         let json = await fetch('https://us-central1-ydangle-high-fidelity-test-2.cloudfunctions.net/pluginApiListPublicFiles', { 
@@ -141,9 +158,8 @@ export class PhotoDB extends EventTarget {
             // Add it
             photos.push({
                 ...file,
-                thumbnailURL: file.url,
                 userID,
-                date: new Date(parts[1]).getTime(),
+                date: parseInt(parts[1]),
             })
 
         }

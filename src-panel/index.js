@@ -6,7 +6,7 @@ import { RouterProvider, createHashRouter } from 'react-router-dom'
 /** Create router */
 const router = createHashRouter([
     { path: '/space/:spaceID/photos', element: <PhotoList /> },
-    { path: '/space/:spaceID/user/:userID/photos', element: <PhotoList insidePopup /> },
+    { path: '/space/:spaceID/user/:userID/photos', element: <PhotoList /> },
 ])
 
 /** Main app */

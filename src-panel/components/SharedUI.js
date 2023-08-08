@@ -1,5 +1,4 @@
 import React from 'react'
-import { useIsWide } from './Hooks'
 
 /** Screen with titlebar */
 export const Screen = props => {
@@ -11,7 +10,7 @@ export const Screen = props => {
         <div style={{ position: 'absolute', zIndex: 2, top: 0, left: 0, width: '100%', height: 60, borderBottom: '1px solid #333', backgroundColor: '#111', display: 'flex', alignItems: 'center', boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)' }}>
 
             {/* Left buttons */}
-            <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', display: 'flex', alignItems: 'center', paddingLeft: 20 }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', display: 'flex', alignItems: 'center', paddingLeft: 14 }}>
                 {props.titlebarLeft}
             </div>
 
@@ -22,7 +21,7 @@ export const Screen = props => {
             </div>
 
             {/* Right buttons */}
-            <div style={{ position: 'absolute', top: 0, right: 0, height: '100%', display: 'flex', alignItems: 'center', paddingRight: 20 }}>
+            <div style={{ position: 'absolute', top: 0, right: 0, height: '100%', display: 'flex', alignItems: 'center', paddingRight: 14 }}>
                 {props.titlebarRight}
             </div>
 
@@ -53,27 +52,5 @@ export const MenubarButton = props => {
         }}
         onClick={props.onClick}
     />
-
-}
-
-/** Photo icon */
-export const PhotoIcon = props => {
-
-    // Check if on a wide screen or not
-    const isWide = useIsWide()
-
-    // Return UI
-    return <a style={{
-        display: 'inline-block',
-        width: isWide ? 'calc(12.5vw - 4px)' : 'calc(25vw - 5px)',
-        height: isWide ? 'calc(10vw - 4px)' : 'calc(20vw - 5px)',
-        margin: 1,
-        cursor: 'pointer',
-        overflow: 'hidden',
-        position: 'relative',
-        backgroundImage: `url(${props.photo.url})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-    }} href={props.photo.url} target='_blank' download={props.photo.name} /> 
 
 }
