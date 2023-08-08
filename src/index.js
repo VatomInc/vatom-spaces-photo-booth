@@ -63,6 +63,17 @@ export default class PhotoBoothPlugin extends BasePlugin {
             }
         })
 
+        // Register File menu option to copy the share link
+        this.menus.register({
+            section: 'file-menu',
+            text: 'Photo Booth Dashboard',
+            icon: this.paths.absolute('camerabutton.svg'),
+            action: async () => {
+                let spaceID = (await this.world.getID()).split(':')[0]
+                await this.app.openURL(`${this.paths.absolute('ui-build/index.html')}#/space/${spaceID}/photos`)
+            }
+        })
+
     }
 
     /** Called when a message is received */
@@ -72,102 +83,126 @@ export default class PhotoBoothPlugin extends BasePlugin {
         if (PanelInterface.handleMessage(message))
             return
 
-        console.debug(`[Photo Booth] Message received:`, message)
+        // Check message
+        if (message.action == 'closePopup') {
+
+            // Close popup
+            this.menus.closePopup(this.currentPopupID)
+            this.currentPopupID = null
+
+        } else {
+
+            // Unknown message
+            console.debug(`[Photo Booth] Unknown message received:`, message)
+
+        }
 
     }
 
     /** Open photo list UI */
     async openPhotoList() {
 
-        // Create UI
-        let panel = await PanelInterface.openPanel('Photo Booth', 'large', `
-            <style>
-                #photo-list {
-                    position: absolute;
-                    top: 0px;
-                    left: 0px;
-                    width: 100%;
-                    height: 100%;
-                    overflow-x: hidden;
-                    overflow-y: auto;
-                    display: flex;
-                    flex-direction: row;
-                    flex-wrap: wrap;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                }
-                .notice {
-                    text-align: center;
-                    color: #999;
-                    margin: 50px;
-                    flex: 1 1 1px;
-                }
-                .photo {
-                    display: inline-block;
-                    position: relative;
-                    width: calc(25vw - 30px);
-                    height: calc(20vw - 30px);
-                    margin: 10px;
-                    cursor: pointer;
-                    overflow: hidden;
-                    box-shadow: 0px 2px 4px rgba(0,0,0,0.2);
-                    border-radius: 5px;
-                }
-                .photo.spacer {
-                    height: 0px;
-                    box-shadow: none;
-                    margin-top: 0px;
-                    margin-bottom: 0px;
-                }
-                .photo > img {
-                    position: absolute;
-                    top: 0%;
-                    left: 0%;
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-            </style>
-            <div id="photo-list">
-                <div class='notice'>Loading...</div>
-            </div>
-        `)
-
-        // Load photos
+        // Get space and user ID
+        let spaceID = (await this.world.getID()).split(':')[0]
         let userID = await this.user.getID()
-        let userIDSafe = userID.replace(/[^0-9A-Za-z]/g, '_')
-        let photos = await this.storage.list('plugin', userIDSafe)
+
+        // Show panel
+        this.currentPopupID = await this.menus.displayPopup({
+            panel: {
+                hideTitlebar: true,
+                iframeURL: this.paths.absolute('ui-build/index.html') + `#/space/${spaceID}/user/${userID}/photos`
+            }
+        })
+
+        // Create UI
+        // let panel = await PanelInterface.openPanel('Photo Booth', 'large', `
+        //     <style>
+        //         #photo-list {
+        //             position: absolute;
+        //             top: 0px;
+        //             left: 0px;
+        //             width: 100%;
+        //             height: 100%;
+        //             overflow-x: hidden;
+        //             overflow-y: auto;
+        //             display: flex;
+        //             flex-direction: row;
+        //             flex-wrap: wrap;
+        //             justify-content: space-between;
+        //             align-items: flex-start;
+        //         }
+        //         .notice {
+        //             text-align: center;
+        //             color: #999;
+        //             margin: 50px;
+        //             flex: 1 1 1px;
+        //         }
+        //         .photo {
+        //             display: inline-block;
+        //             position: relative;
+        //             width: calc(25vw - 30px);
+        //             height: calc(20vw - 30px);
+        //             margin: 10px;
+        //             cursor: pointer;
+        //             overflow: hidden;
+        //             box-shadow: 0px 2px 4px rgba(0,0,0,0.2);
+        //             border-radius: 5px;
+        //         }
+        //         .photo.spacer {
+        //             height: 0px;
+        //             box-shadow: none;
+        //             margin-top: 0px;
+        //             margin-bottom: 0px;
+        //         }
+        //         .photo > img {
+        //             position: absolute;
+        //             top: 0%;
+        //             left: 0%;
+        //             width: 100%;
+        //             height: 100%;
+        //             object-fit: cover;
+        //         }
+        //     </style>
+        //     <div id="photo-list">
+        //         <div class='notice'>Loading...</div>
+        //     </div>
+        // `)
+
+        // // Load photos
+        // let userID = await this.user.getID()
+        // let userIDSafe = userID.replace(/[^0-9A-Za-z]/g, '_')
+        // let photos = await this.storage.list('plugin', userIDSafe)
         
-        // Sort by name
-        photos.sort((a, b) => b.name.localeCompare(a.name))
+        // // Sort by name
+        // photos.sort((a, b) => b.name.localeCompare(a.name))
 
-        // Create output html
-        let htmlOutput = ''
-        for (let photo of photos) {
+        // // Create output html
+        // let htmlOutput = ''
+        // for (let photo of photos) {
 
-            // Add item
-            htmlOutput += `<a class='photo' href="${photo.url}" target='_blank' download>
-                <img src="${photo.url}" />
-            </a>`
+        //     // Add item
+        //     htmlOutput += `<a class='photo' href="${photo.url}" target='_blank' download>
+        //         <img src="${photo.url}" />
+        //     </a>`
 
-        }
+        // }
 
-        // Add notice if no photos found
-        if (!photos.length) {
+        // // Add notice if no photos found
+        // if (!photos.length) {
 
-            // Add notice
-            htmlOutput = `<div class='notice'>${this.getField('no-photos-msg') || "No photos found. Look around for a nearby photo booth to take pictures."}</div>`
+        //     // Add notice
+        //     htmlOutput = `<div class='notice'>${this.getField('no-photos-msg') || "No photos found. Look around for a nearby photo booth to take pictures."}</div>`
 
-        } else {
+        // } else {
 
-            // Fix alignment of the last row
-            for (let i = 0 ; i < 4 ; i++)
-                htmlOutput += `<div class='photo spacer'></div>`
+        //     // Fix alignment of the last row
+        //     for (let i = 0 ; i < 4 ; i++)
+        //         htmlOutput += `<div class='photo spacer'></div>`
 
-        }
+        // }
 
-        // Send to UI
-        panel.updateElement('#photo-list', htmlOutput)
+        // // Send to UI
+        // panel.updateElement('#photo-list', htmlOutput)
 
     }
 
