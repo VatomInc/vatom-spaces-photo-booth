@@ -26,7 +26,11 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 { id: 'info', type: 'label', value: `This defines the region where users will stand when taking the photo.` },
                 { id: 'activation-mode', name: 'Activation mode', type: 'select', values: ['None', 'Toast', 'Menubar Button'], help: `<b>None:</b> No automatic activation. You can still trigger the Photo Booth by adding the Photo Booth Button component to another in-world item.<br/><br/><b>Toast:</b> When the user steps into the zone, a Toast will appear asking them if they want to take a photo.<br/><br/><b>Menubar Button:</b> When the user is within the zone, a menubar button is added to take a photo.` },
                 { id: 'activation-text', name: 'Prompt', help: `The text displayed to prompt the user to take a photo. This is only used when the Activation Mode is set to Toast.`, type: 'text' },
+                { id: 'photo-width', name: 'Photo Width', type: 'number', default: 1920, help: `The width of the photo in pixels.` },
+                { id: 'photo-height', name: 'Photo Height', type: 'number', default: 1080, help: `The height of the photo in pixels.` },
                 { id: 'overlay-image', name: 'Overlay image', help: `The image to display over the image.`, type: 'file' },
+                { id: 'overlay-position', name: 'Overlay position', type: 'select', values: ['Stretch', 'Center', 'Top left', 'Top right', 'Bottom left', 'Bottom right'], help: `Where to display the overlay image.` },
+                { id: 'overlay-scale', name: 'Overlay scale', type: 'number', default: 1, help: `Amount to scale the overlay image.` },
                 // { id: 'use-nearby-camera', name: 'Use nearby camera', help: `If enabled, the nearest camera will be used when taking the photo. If disabled, will use the user's current viewport camera.`, type: 'checkbox' },
                 { id: 'do-activate', name: 'Take Photo', type: 'button', help: `Take a photo now.` }
             ]
@@ -249,14 +253,14 @@ export class PhotoBoothZone extends BasePhotoComponent {
             let date = Date.now()
 
             // Get image details
-            let width = 1920
-            let height = 1080
+            let width = parseFloat(this.getField('photo-width')) || 1920
+            let height = parseFloat(this.getField('photo-height')) || 1080
             let overlayImageURL = this.getField('overlay-image')
 
             // Image capture options
             let captureOptions = {
                 format: 'image/jpg', 
-                quality: 0.95, 
+                quality: 0.98, 
                 width, 
                 height, 
                 hideNameTags: true
@@ -287,10 +291,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
             if (overlayImageURL) {
 
                 // Take photo at full quality
-                let photoDataURI = await this.plugin.world.captureImage({ ...captureOptions, quality: 1, format: 'image/png' })
-
-                // Convert to blob
-                let photoBlob = await fetch(photoDataURI).then(r => r.blob())
+                photoBlob = await this.plugin.world.captureImage({ ...captureOptions, quality: 1, format: 'image/png' })
 
                 // Draw to canvas
                 let canvas = new OffscreenCanvas(width, height)
@@ -299,13 +300,24 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 ctx.clearRect(0, 0, width, height)
                 ctx.drawImage(img, 0, 0)
 
-                // Add overlay
+                // Get overlay size
                 let overlayBlob = await fetch(this.getField('overlay-image')).then(r => r.blob())
                 let overlayImg = await createImageBitmap(overlayBlob)
-                ctx.drawImage(overlayImg, 0, 0, width, height)
+                let overlayScale = parseFloat(this.getField('overlay-scale')) || 1
+                let overlayWidth = overlayImg.width * overlayScale
+                let overlayHeight = overlayImg.height * overlayScale
+
+                // Add overlay
+                let overlayPosition = this.getField('overlay-position') || 'Stretch'
+                if (overlayPosition == 'Stretch')           ctx.drawImage(overlayImg, 0, 0, width, height)
+                else if (overlayPosition == 'Top left')     ctx.drawImage(overlayImg, 0, 0, overlayWidth, overlayHeight)
+                else if (overlayPosition == 'Top right')    ctx.drawImage(overlayImg, width - overlayWidth, 0, overlayWidth, overlayHeight)
+                else if (overlayPosition == 'Bottom left')  ctx.drawImage(overlayImg, 0, height - overlayHeight, overlayWidth, overlayHeight)
+                else if (overlayPosition == 'Bottom right') ctx.drawImage(overlayImg, width - overlayWidth, height - overlayHeight, overlayWidth, overlayHeight)
+                else if (overlayPosition == 'Center')       ctx.drawImage(overlayImg, width/2 - overlayWidth/2, height/2 - overlayHeight/2, overlayWidth, overlayHeight)
 
                 // Generate compressed image
-                photoBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.95 })
+                photoBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.98 })
 
             } else {
 
