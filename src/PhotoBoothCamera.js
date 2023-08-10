@@ -18,6 +18,7 @@ export class PhotoBoothCamera extends BasePhotoComponent {
             description: 'When a user takes a photo, the nearest camera will be used.',
             settings: [
                 { id: 'info', type: 'label', value: `When a user takes a photo, the nearest camera will be used.` },
+                { id: 'height-offset', type: 'number', name: 'Height Offset', help: 'When the camera aims at the center of the Photo Booth Zone, this specifies how high off the ground the camera will aim at, in meters.', default: 1.8 },
             ]
         })
 

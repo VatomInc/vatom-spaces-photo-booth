@@ -1,7 +1,6 @@
 import { BasePlugin, BaseComponent } from 'vatom-spaces-plugins'
 import { PhotoBoothZone } from './PhotoBoothZone'
 import { PhotoBoothButton } from './PhotoBoothButton'
-import { panelHTML } from './Utilities'
 import { PanelInterface } from './PanelInterface'
 import { PhotoBoothCamera } from './PhotoBoothCamera'
 
@@ -30,7 +29,7 @@ export default class PhotoBoothPlugin extends BasePlugin {
 
         // Register photo button
         this.menus.register({
-            text: 'My Photos',
+            text: 'Photo Booth',
             icon: this.paths.absolute('camerabutton.svg'),
             action: () => this.openPhotoList(),
         })
@@ -66,17 +65,17 @@ export default class PhotoBoothPlugin extends BasePlugin {
         // Register File menu option to copy the share link
         this.menus.register({
             section: 'file-menu',
-            text: 'View Photo Booth',
+            text: 'Photo Booth: Share URL',
             icon: this.paths.absolute('camerabutton.svg'),
-            action: async () => {
-                let spaceID = (await this.world.getID()).split(':')[0]
-                this.currentPopupID = await this.menus.displayPopup({
-                    panel: {
-                        hideTitlebar: true,
-                        iframeURL: `${this.paths.absolute('ui-build/index.html')}#/space/${spaceID}/photos`
-                    }
-                })
-            }
+            action: () => this.sharePhotoBoothURL()
+        })
+
+        // Register File menu option to delete all photos
+        this.menus.register({
+            section: 'file-menu',
+            text: 'Photo Booth: Delete Photos',
+            icon: this.paths.absolute('camerabutton.svg'),
+            action: () => this.deleteAllPhotos()
         })
 
     }
@@ -115,7 +114,7 @@ export default class PhotoBoothPlugin extends BasePlugin {
         this.currentPopupID = await this.menus.displayPopup({
             panel: {
                 hideTitlebar: true,
-                iframeURL: this.paths.absolute('ui-build/index.html') + `#/space/${spaceID}/user/${userID}/photos`
+                iframeURL: this.paths.absolute('ui-build/index.html') + `#/space/${spaceID}/photos`
             }
         })
 
@@ -276,6 +275,74 @@ export default class PhotoBoothPlugin extends BasePlugin {
             ],
 
         })
+
+    }
+
+    /** Called to share the photo booth URL */
+    async sharePhotoBoothURL() {
+                
+        // Get photos URL
+        let spaceID = (await this.world.getID()).split(':')[0]
+        let url = `${this.paths.absolute('ui-build/index.html')}#/space/${spaceID}/photos`
+
+        // Allow the user to copy it
+        await this.menus.prompt({
+            icon: 'info',
+            title: 'Share Photo Booth URL',
+            text: `Copy the URL below to share the photo booth externally.`,
+            initialValue: url,
+        })
+        
+    }
+
+    /** Called to delete all photos in the photo booth */
+    async deleteAllPhotos() {
+
+        // Confirm
+        let confirm = await this.menus.confirm("Are you sure you want to permanently delete all photos in the Photo Booth?", "Delete All Photos")
+        if (!confirm)
+            return
+
+        // Catch errors
+        let toastID = null
+        try {
+
+            // Show status
+            toastID = await this.menus.toast({ text: "Deleting photos...", isSticky: true })
+
+            // Get all photos
+            let allFiles = await this.storage.list('plugin')
+            let photos = allFiles.filter(f => f.name.startsWith('Photo '))
+
+            // Delete each one
+            for (let i = 0 ; i < photos.length ; i++) {
+
+                // Update toast
+                await this.menus.toast({ id: toastID, text: `Deleting photos (${i+1} of ${photos.length})...`, isSticky: true })
+
+                // Delete it
+                let photo = photos[i]
+                await this.storage.delete('plugin', photo.name)
+
+            }
+
+            // Final update to the toast
+            await this.menus.toast({ id: toastID, text: `Finished deleting ${photos.length} photos.`, isSticky: true })
+            await new Promise(c => setTimeout(c, 5000))
+
+        } catch (err) {
+
+            // Show error
+            console.warn(`[Photo Booth] Error deleting photos: ${err.message}`)
+            await this.menus.alert(err.message, "Error deleting photos", "error")
+
+        } finally {
+
+            // Close toast
+            if (toastID)
+                await this.menus.closeToast(toastID)
+
+        }
 
     }
 

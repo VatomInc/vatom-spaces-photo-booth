@@ -44,9 +44,9 @@ export const PhotoList = props => {
         titlebarRight={<>
 
             {/* Copy/share URL button, only on the global page */}
-            { !userID ? <MenubarButton icon={require('../assets/share.svg')} onClick={() => {
+            {/* { !userID ? <MenubarButton icon={require('../assets/share.svg')} onClick={() => {
                 prompt("Copy this URL to share all photos:", window.location.href)
-            }} /> : null }
+            }} /> : null } */}
 
             {/* Download all button */}
             <MenubarButton icon={require('../assets/downloads.svg')} onClick={downloadAll} />

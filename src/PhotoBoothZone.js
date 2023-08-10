@@ -238,6 +238,10 @@ export class PhotoBoothZone extends BasePhotoComponent {
             // Wait for countdown to complete
             await new Promise(resolve => setTimeout(resolve, 3000))
 
+            // If triggered by another user, stop here since they're the ones taking the actual photo
+            if (triggeredBy) 
+                return
+
             // Show status
             toastID = await this.plugin.menus.toast({ text: 'Saving photo...', isSticky: true })
             let userID = await this.plugin.user.getID()
@@ -263,6 +267,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
             if (camera) {
 
                 // Adjust camera position to look at the zone
+                let cameraHeightOffset = parseFloat(camera.getField('height-offset')) || 1.8
                 captureOptions.cameraPosition = {
                     x: camera.fields.world_center_x,
                     y: camera.fields.world_center_y,
@@ -270,7 +275,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 }
                 captureOptions.cameraTarget = {
                     x: this.fields.world_center_x,
-                    y: this.fields.world_center_y - this.fields.world_bounds_y/2 + 1.5,
+                    y: this.fields.world_center_y - this.fields.world_bounds_y/2 + cameraHeightOffset,
                     z: this.fields.world_center_z,
                 }
 
@@ -321,10 +326,10 @@ export class PhotoBoothZone extends BasePhotoComponent {
             await Promise.all([
 
                 // Save full jpeg to file storage
-                this.plugin.storage.put('plugin', `${userIDSafe}/Photo ${date}.jpg`, photoBlob),
+                this.plugin.storage.put('plugin', `Photo ${date} ${userIDSafe}.jpg`, photoBlob),
 
                 // Save thumbnail jpeg to file storage
-                this.plugin.storage.put('plugin', `${userIDSafe}/Photo ${date} thumbnail.jpg`, thumbnailBlob),
+                this.plugin.storage.put('plugin', `Photo ${date} ${userIDSafe} thumbnail.jpg`, thumbnailBlob),
 
             ])
 

@@ -54,28 +54,8 @@ export class PhotoDB extends EventTarget {
         // Catch errors
         try {
 
-            // Check if we have a specific userID
-            if (this.userID) {
-
-                // Update status
-                this.statusText = 'Fetching photos...'
-                this.dispatchEvent(new Event('updated'))
-
-                // Just fetch the photos for that user
-                this.photos = await this.fetchPhotosForUser(this.userID)
-
-                // Sort photos by date descending
-                this.photos.sort((a, b) => b.date - a.date)
-
-                // Update status
-                this.statusText = ''
-                this.dispatchEvent(new Event('updated'))
-                return
-
-            }
-
             // Fetch folders in the space
-            this.statusText = 'Fetching users...'
+            this.statusText = 'Fetching photos...'
             this.dispatchEvent(new Event('updated'))
             let json = await fetch('https://us-central1-ydangle-high-fidelity-test-2.cloudfunctions.net/pluginApiListPublicFiles', { 
                 method: 'POST', 
@@ -85,31 +65,54 @@ export class PhotoDB extends EventTarget {
                 })
             }).then(r => r.json())
 
-            // Go through folders
-            this.photos = []
-            let numFetched = 0
-            for (let folder of json.items) {
+            // Go through each file
+            let photos = []
+            for (let file of json.items) {
 
-                // Show status
-                this.statusText = `Fetching photos for ${folder.name} (${Math.round(numFetched / json.items.length * 100)}%)...`
-                this.dispatchEvent(new Event('updated'))
-                numFetched += 1
+                // Skip folders and bad files
+                if (file.isFolder) continue
+                if (!file.name.startsWith('Photo ')) continue
 
-                // Stop if not a folder or not a user ID
-                if (!folder.isFolder) continue
-                if (!folder.name.startsWith('vatominc_')) continue
+                // Skip if thumbnail
+                if (file.name.includes('thumbnail'))
+                    continue
 
-                // Fetch photos for user
-                let userID = folder.name.substring('vatominc_'.length)
-                let userPhotos = await this.fetchPhotosForUser(userID)
-                
-                // Add photos and update UI
-                this.photos = [ ...this.photos, ...userPhotos ]
+                // Extract info from filename by splitting on spaces and dots
+                let parts = file.name.split(/[\s\.]+/)
+                let date = parseInt(parts[1])
+                let userID = parts[2]
 
-                // Sort photos by date descending
-                this.photos.sort((a, b) => b.date - a.date)
+                // Add it
+                photos.push({ ...file, userID, date })
 
             }
+
+            // For photos with a thumbnail, use those
+            for (let file of json.items) {
+
+                // Skip folders and bad files
+                if (file.isFolder) continue
+                if (!file.name.startsWith('Photo ')) continue
+
+                // Skip if not thumbnail
+                if (!file.name.includes('thumbnail'))
+                    continue
+
+                // Extract info from filename by splitting on spaces and dots
+                let parts = file.name.split(/[\s\.]+/)
+
+                // Find the photo
+                let photo = photos.find(p => p.name.startsWith(`Photo ${parts[1]}`))
+                if (!photo) continue
+
+                // Add thumbnail
+                photo.thumbnailURL = file.url
+
+            }
+
+            // Done
+            this.photos = photos
+            this.photos.sort((a, b) => b.date - a.date)
 
             // Complete
             this.statusText = ''
@@ -124,71 +127,6 @@ export class PhotoDB extends EventTarget {
             this.dispatchEvent(new Event('updated'))
 
         }
-
-    }
-
-    /** @private Fetch photos for a user */
-    async fetchPhotosForUser(userID) {
-
-        // Fetch files in the space
-        let json = await fetch('https://us-central1-ydangle-high-fidelity-test-2.cloudfunctions.net/pluginApiListPublicFiles', { 
-            method: 'POST', 
-            body: JSON.stringify({
-                pluginID: 'com.vatom.photobooth',
-                spaceID: this.spaceID,
-                path: `vatominc_${userID}`
-            })
-        }).then(r => r.json())
-
-        // Go through each file
-        let photos = []
-        for (let file of json.items) {
-
-            // Skip folders and bad files
-            if (file.isFolder) continue
-            if (!file.name.startsWith('Photo ')) continue
-
-            // Skip if thumbnail
-            if (file.name.includes('thumbnail'))
-                continue
-
-            // Extract info from filename by splitting on spaces and dots
-            let parts = file.name.split(/[\s\.]+/)
-
-            // Add it
-            photos.push({
-                ...file,
-                userID,
-                date: parseInt(parts[1]),
-            })
-
-        }
-
-        // For photos with a thumbnail, use those
-        for (let file of json.items) {
-
-            // Skip folders and bad files
-            if (file.isFolder) continue
-            if (!file.name.startsWith('Photo ')) continue
-
-            // Skip if not thumbnail
-            if (!file.name.includes('thumbnail'))
-                continue
-
-            // Extract info from filename by splitting on spaces and dots
-            let parts = file.name.split(/[\s\.]+/)
-
-            // Find the photo
-            let photo = photos.find(p => p.name.startsWith(`Photo ${parts[1]}`))
-            if (!photo) continue
-
-            // Add thumbnail
-            photo.thumbnailURL = file.url
-
-        }
-
-        // Done
-        return photos
 
     }
 
