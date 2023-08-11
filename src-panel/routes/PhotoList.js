@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
-import { useIsWide, usePhotoDB, useSpaceID, useZipper } from '../components/Hooks'
+import React from 'react'
+import { useIsWide, usePhotoDB, useZipper } from '../components/Hooks'
 import { MenubarButton, Screen } from '../components/SharedUI'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 /** Renders the list of photos for a space or user */
 export const PhotoList = props => {
@@ -17,9 +17,6 @@ export const PhotoList = props => {
     // Get zipper tool
     const zipper = useZipper()
 
-    // Check if inside popup
-    const insidePopup = window.parent !== window || window.opener !== window
-
     // Called when the user wants to download all images
     const downloadAll = async () => {
 
@@ -32,27 +29,21 @@ export const PhotoList = props => {
 
     }
 
-    // Called when the user wants to close the popup
-    const close = () => {
-        window.parent.postMessage({ action: 'closePopup' }, '*')
-    }
-
     // Render UI
     return <Screen
-        title={userID ? "My Photos" : "Photo Booth"}
+        title={"Photo Booth"}
         subtitle={zipper.status || photoDB.statusText || (photoDB.photos.length == 1 ? '1 photo' : `${photoDB.photos.length} photos`)}
         titlebarRight={<>
 
             {/* Copy/share URL button, only on the global page */}
-            {/* { !userID ? <MenubarButton icon={require('../assets/share.svg')} onClick={() => {
+            { !userID ? <MenubarButton icon={require('../assets/share.svg')} onClick={() => {
                 prompt("Copy this URL to share all photos:", window.location.href)
-            }} /> : null } */}
+            }} /> : null }
 
-            {/* Download all button */}
-            <MenubarButton icon={require('../assets/downloads.svg')} onClick={downloadAll} />
-
-            {/* Close popup button, only if we're inside the plugin popup window */}
-            { insidePopup ? <MenubarButton icon={require('../assets/close.png')} onClick={close} /> : null }
+            {/* Download all button, only if viewing everything */}
+            { userID ? null : 
+                <MenubarButton icon={require('../assets/downloads.svg')} onClick={downloadAll} />
+            }
 
         </>}
     >
@@ -62,7 +53,7 @@ export const PhotoList = props => {
 
         {/* Show photos */}
         <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-            { photoDB.photos.map(photo => <PhotoIcon key={photo.userID + photo.name} photo={photo} /> )}
+            { photoDB.photos.map(photo => <PhotoIcon key={photo.name} photo={photo} /> )}
         </div>
 
     </Screen>
@@ -75,8 +66,24 @@ const PhotoIcon = props => {
     // Check if on a wide screen or not
     const isWide = useIsWide()
 
+    // Get navigator
+    const navigate = useNavigate()
+
+    // Get route info
+    const { userID } = useParams()
+    if (userID?.startsWith('vatominc_'))
+        userID = userID.substring(9)
+
+    // Called when the user clicks the icon
+    const onClick = () => {
+        navigate(userID
+            ? `/space/${props.photo.spaceID}/user/${userID}/photo/${encodeURIComponent(props.photo.name)}`
+            : `/space/${props.photo.spaceID}/photo/${encodeURIComponent(props.photo.name)}`
+        )
+    }
+
     // Return UI
-    return <a style={{
+    return <div style={{
         display: 'inline-block',
         width: isWide ? 'calc(12.5% - 2px)' : 'calc(25% - 2px)',
         aspectRatio: '4 / 3',
@@ -87,6 +94,6 @@ const PhotoIcon = props => {
         backgroundImage: `url(${props.photo.thumbnailURL || props.photo.url})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-    }} href={props.photo.url} target='_blank' download={props.photo.name} /> 
+    }} onClick={onClick} /> 
 
 }

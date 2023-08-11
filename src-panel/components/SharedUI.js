@@ -1,7 +1,15 @@
 import React from 'react'
+import { useCanGoBack } from './Hooks'
+import { useNavigate } from 'react-router-dom'
 
 /** Screen with titlebar */
 export const Screen = props => {
+
+    // Check if inside popup
+    const insidePopup = window.parent !== window || window.opener !== window
+
+    // Use navigate
+    const navigate = useNavigate()
 
     // Render UI
     return <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
@@ -11,7 +19,15 @@ export const Screen = props => {
 
             {/* Left buttons */}
             <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', display: 'flex', alignItems: 'center', paddingLeft: 14 }}>
+
+                {/* Back button */}
+                { props.backURL ? <MenubarButton icon={require('../assets/back.svg')} onClick={() => {
+                    navigate(props.backURL)
+                }} /> : null }
+
+                {/* Provided buttons */}
                 {props.titlebarLeft}
+
             </div>
 
             {/* Center text */}
@@ -22,7 +38,15 @@ export const Screen = props => {
 
             {/* Right buttons */}
             <div style={{ position: 'absolute', top: 0, right: 0, height: '100%', display: 'flex', alignItems: 'center', paddingRight: 14 }}>
+
+                {/* Provided buttons */}
                 {props.titlebarRight}
+
+                {/* Close popup button, only if we're inside the plugin popup window */}
+                { insidePopup ? <MenubarButton icon={require('../assets/close.svg')} onClick={() => {
+                    window.parent.postMessage({ action: 'closePopup' }, '*')
+                }} /> : null }
+
             </div>
 
         </div>

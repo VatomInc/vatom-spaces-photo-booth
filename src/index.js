@@ -27,13 +27,6 @@ export default class PhotoBoothPlugin extends BasePlugin {
         PhotoBoothCamera.register(this)
         PhotoBoothZone.register(this)
 
-        // Register photo button
-        this.menus.register({
-            text: 'Photo Booth',
-            icon: this.paths.absolute('camerabutton.svg'),
-            action: () => this.openPhotoList(),
-        })
-
         // Register Insert menu items
         this.menus.register({
             section: 'insert-object',
@@ -56,8 +49,9 @@ export default class PhotoBoothPlugin extends BasePlugin {
                 fields: [
                     { id: 'about-section', type: 'section', value: 'About' },
                     { id: 'info', type: 'label', value: `This plugin allows you to create a photo booth experience in your space.` },
-                    { id: 'text-section', type: 'section', value: 'Text' },
-                    { id: 'no-photos-text', type: 'text', name: 'No photos', help: `Displayed in the photo list when the user has not taken any photos yet.` },
+                    { id: 'icon-section', type: 'section', value: 'Settings' },
+                    { id: 'hide-gallery', type: 'checkbox', name: 'Hide gallery', help: `If enabled, users will not be able to view the photo gallery. The button at the bottom will be hidden, and the option to view photos after taking them will be removed. Admins can still view the gallery with the File > Photo Booth menu option.` },
+                    { id: 'icon-title', type: 'text', name: 'Icon title', default: 'Photo Booth', help: `The title of the photo booth icon in the bottom action bar.` },
                 ]
             }
         })
@@ -65,9 +59,9 @@ export default class PhotoBoothPlugin extends BasePlugin {
         // Register File menu option to copy the share link
         this.menus.register({
             section: 'file-menu',
-            text: 'Photo Booth: Share URL',
+            text: 'Photo Booth',
             icon: this.paths.absolute('camerabutton.svg'),
-            action: () => this.sharePhotoBoothURL()
+            action: () => this.openPhotoList(true)
         })
 
         // Register File menu option to delete all photos
@@ -76,6 +70,30 @@ export default class PhotoBoothPlugin extends BasePlugin {
             text: 'Photo Booth: Delete Photos',
             icon: this.paths.absolute('camerabutton.svg'),
             action: () => this.deleteAllPhotos()
+        })
+
+        // Update dynamic UI
+        this.updateUI()
+
+    }
+
+    /** Called when any plugin settings change */
+    onSettingsUpdated() {
+
+        // Update UI
+        this.updateUI()
+
+    }
+
+    /** Update dynamic UI */
+    updateUI() {
+
+        // Register user's photo button
+        this.getField('hide-gallery') ? this.menus.unregister(this.id + ':photo-booth-button') : this.menus.register({
+            id: this.id + ':photo-booth-button',
+            text: this.getField('icon-title') || 'Photo Booth',
+            icon: this.paths.absolute('camerabutton.svg'),
+            action: () => this.openPhotoList(false),
         })
 
     }
@@ -109,12 +127,16 @@ export default class PhotoBoothPlugin extends BasePlugin {
         // Get space and user ID
         let spaceID = (await this.world.getID()).split(':')[0]
         let userID = (await this.user.getID()).split(':')[1]
+        let admin = await this.user.isAdmin()
 
         // Show panel
         this.currentPopupID = await this.menus.displayPopup({
             panel: {
                 hideTitlebar: true,
-                iframeURL: this.paths.absolute('ui-build/index.html') + `#/space/${spaceID}/photos`
+                iframeURL: this.paths.absolute('ui-build/index.html') + (admin
+                    ? `#/space/${spaceID}/photos`
+                    : `#/space/${spaceID}/user/${userID}/photos`
+                )
             }
         })
 

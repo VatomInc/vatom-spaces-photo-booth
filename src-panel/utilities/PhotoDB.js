@@ -81,9 +81,10 @@ export class PhotoDB extends EventTarget {
                 let parts = file.name.split(/[\s\.]+/)
                 let date = parseInt(parts[1])
                 let userID = parts[2]
+                let spaceID = this.spaceID
 
                 // Add it
-                photos.push({ ...file, userID, date })
+                photos.push({ ...file, userID, spaceID, date })
 
             }
 
@@ -117,7 +118,6 @@ export class PhotoDB extends EventTarget {
             // Complete
             this.statusText = ''
             this.dispatchEvent(new Event('updated'))
-            console.log(this.photos)
 
         } catch (err) {
 

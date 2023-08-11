@@ -357,10 +357,22 @@ export class PhotoBoothZone extends BasePhotoComponent {
             await new Promise(c => setTimeout(c, 1000))
 
             // Show completion toast
-            await this.plugin.menus.toast({ 
-                text: 'Photo saved!', 
-                buttonAction: () => this.plugin.openPhotoList(),
-                buttonText: 'View Photos',
+            let finalToastID = await this.plugin.menus.toast({ 
+                text:               'Photo saved!',
+                isSticky:           true,
+                buttonText:         this.plugin.getField('hide-gallery') ? undefined : 'View Photos',
+                buttonAction:       this.plugin.getField('hide-gallery') ? undefined : () => {
+                    this.plugin.menus.closeToast(finalToastID)
+                    this.plugin.openPhotoList()
+                    this.onExitedZone()
+                    this.isInside = false
+                },
+                buttonCancelText:   'Close',
+                buttonCancelAction: () => {
+                    this.plugin.menus.closeToast(finalToastID)
+                    this.onExitedZone()
+                    this.isInside = false
+                }
             })
 
         } catch (err) {
