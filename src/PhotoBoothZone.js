@@ -74,6 +74,10 @@ export class PhotoBoothZone extends BasePhotoComponent {
     /** Called continuously to check if the user has entered or left the zone */
     async checkPosition() {
 
+        // Stop if currently activating
+        if (this._isActivating)
+            return
+
         // Check if changed
         let isInside = await isInsizeZone(this.fields)
         if (isInside === this.isInside)
@@ -177,9 +181,6 @@ export class PhotoBoothZone extends BasePhotoComponent {
         if (this._isActivating) return
         this._isActivating = true
 
-        // Toast
-        let toastID = null
-
         // Catch errors
         try {
 
@@ -260,7 +261,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 return
 
             // Show status
-            toastID = await this.plugin.menus.toast({ text: 'Saving photo...', isSticky: true })
+            this.toastID = await this.plugin.menus.toast({ text: 'Saving photo...', isSticky: true })
             let userID = await this.plugin.user.getID()
             let userIDSafe = userID.replace(/[^0-9A-Za-z]/g, '_')
             let date = Date.now()
@@ -364,27 +365,24 @@ export class PhotoBoothZone extends BasePhotoComponent {
             // Done
             console.debug(`[Photo Booth] Photo saved!`)
 
-            // Close toast so it doesn't interfere with the next one
-            if (toastID) this.plugin.menus.closeToast(toastID)
-            toastID = null
-            await new Promise(c => setTimeout(c, 1000))
-
             // Show completion toast
-            let finalToastID = await this.plugin.menus.toast({ 
+            this.toastID = await this.plugin.menus.toast({
+                id:                 this.toastID,
                 text:               'Photo saved!',
                 isSticky:           true,
                 buttonText:         this.plugin.getField('hide-gallery') ? undefined : 'View Photos',
                 buttonAction:       this.plugin.getField('hide-gallery') ? undefined : () => {
-                    this.plugin.menus.closeToast(finalToastID)
+                    this.plugin.menus.closeToast(this.toastID)
+                    this.toastID = null
                     this.plugin.openPhotoList()
                     this.onExitedZone()
                     this.isInside = false
                 },
                 buttonCancelText:   'Close',
                 buttonCancelAction: () => {
-                    this.plugin.menus.closeToast(finalToastID)
+                    this.plugin.menus.closeToast(this.toastID)
+                    this.toastID = false
                     this.onExitedZone()
-                    this.isInside = false
                 }
             })
 
@@ -394,10 +392,12 @@ export class PhotoBoothZone extends BasePhotoComponent {
             console.error(`[Photo Booth] Error taking photo:`, err)
             this.plugin.menus.alert(err.message, "Unable to take photo", "error")
 
-        } finally {
-
             // Hide toast if it exists
-            if (toastID) this.plugin.menus.closeToast(toastID)
+            if (this.toastID) this.plugin.menus.closeToast(this.toastID)
+            this.toastID = null
+            this.onExitedZone()
+
+        } finally {
 
             // Done
             this._isActivating = false
