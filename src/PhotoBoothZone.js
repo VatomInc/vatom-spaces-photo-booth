@@ -383,6 +383,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
                     this.plugin.menus.closeToast(this.toastID)
                     this.toastID = false
                     this.onExitedZone()
+                    this.isInside = false
                 }
             })
 
