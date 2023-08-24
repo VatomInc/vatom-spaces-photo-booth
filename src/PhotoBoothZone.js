@@ -23,16 +23,29 @@ export class PhotoBoothZone extends BasePhotoComponent {
             name: 'Photo Booth Zone',
             description: 'Add this to a Zone to specify the region where users will stand when taking the photo.',
             settings: [
+
+                // Description
                 { id: 'info', type: 'label', value: `This defines the region where users will stand when taking the photo.` },
+
+                // Activation section
+                { id: 'lbl-activation', type: 'section', name: 'Activation'},
                 { id: 'activation-mode', name: 'Activation mode', type: 'select', values: ['None', 'Toast', 'Menubar Button'], help: `<b>None:</b> No automatic activation. You can still trigger the Photo Booth by adding the Photo Booth Button component to another in-world item.<br/><br/><b>Toast:</b> When the user steps into the zone, a Toast will appear asking them if they want to take a photo.<br/><br/><b>Menubar Button:</b> When the user is within the zone, a menubar button is added to take a photo.` },
                 { id: 'activation-text', name: 'Prompt', help: `The text displayed to prompt the user to take a photo. This is only used when the Activation Mode is set to Toast.`, type: 'text' },
+                { id: 'do-activate', name: 'Take Photo', type: 'button', help: `Take a photo now.` },
+
+                // Photo section
+                { id: 'lbl-photo', type: 'section', name: 'Photos'},
                 { id: 'photo-width', name: 'Photo Width', type: 'number', default: 1920, help: `The width of the photo in pixels.` },
                 { id: 'photo-height', name: 'Photo Height', type: 'number', default: 1080, help: `The height of the photo in pixels.` },
+
+                // Overlay section
+                { id: 'lbl-overlay', type: 'section', name: 'Overlay'},
+                { id: 'overlay-image-enabled', name: 'Overlay image enabled', help: `If enabled, an image will be displayed over the photo.`, type: 'checkbox'},
                 { id: 'overlay-image', name: 'Overlay image', help: `The image to display over the image.`, type: 'file' },
                 { id: 'overlay-position', name: 'Overlay position', type: 'select', values: ['Stretch', 'Center', 'Top left', 'Top right', 'Bottom left', 'Bottom right'], help: `Where to display the overlay image.` },
                 { id: 'overlay-scale', name: 'Overlay scale', type: 'number', default: 1, help: `Amount to scale the overlay image.` },
                 // { id: 'use-nearby-camera', name: 'Use nearby camera', help: `If enabled, the nearest camera will be used when taking the photo. If disabled, will use the user's current viewport camera.`, type: 'checkbox' },
-                { id: 'do-activate', name: 'Take Photo', type: 'button', help: `Take a photo now.` }
+
             ]
         })
 
@@ -288,7 +301,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
             // Check if there's an overlay image
             console.log(`[Photo Booth] Taking photo!`)
             let photoBlob = null
-            if (overlayImageURL) {
+            if (overlayImageURL && this.getField('overlay-image-enabled')) {
 
                 // Take photo at full quality
                 photoBlob = await this.plugin.world.captureImage({ ...captureOptions, quality: 1, format: 'image/png' })
