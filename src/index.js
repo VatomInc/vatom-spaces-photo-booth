@@ -132,6 +132,8 @@ export default class PhotoBoothPlugin extends BasePlugin {
         // Show panel
         this.currentPopupID = await this.menus.displayPopup({
             panel: {
+                width: 1670,
+                height: 1000,
                 hideTitlebar: true,
                 iframeURL: this.paths.absolute('ui-build/index.html') + (admin
                     ? `#/space/${spaceID}/photos`
