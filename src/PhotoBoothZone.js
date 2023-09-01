@@ -44,6 +44,7 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 { id: 'overlay-image', name: 'Overlay image', help: `The image to display over the image.`, type: 'file' },
                 { id: 'overlay-position', name: 'Overlay position', type: 'select', values: ['Stretch', 'Center', 'Top left', 'Top right', 'Bottom left', 'Bottom right'], help: `Where to display the overlay image.` },
                 { id: 'overlay-scale', name: 'Overlay scale', type: 'number', default: 1, help: `Amount to scale the overlay image.` },
+                { id: 'overlay-padding', name: 'Overlay padding', type: 'number', default: 0, help: `Number of pixels from the edge of the screen to offset the overlay image by.` },
                 // { id: 'use-nearby-camera', name: 'Use nearby camera', help: `If enabled, the nearest camera will be used when taking the photo. If disabled, will use the user's current viewport camera.`, type: 'checkbox' },
 
             ]
@@ -322,12 +323,13 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 let overlayHeight = overlayImg.height * overlayScale
 
                 // Add overlay
+                let overlayPadding = parseInt(this.getField('overlay-padding')) || 0
                 let overlayPosition = this.getField('overlay-position') || 'Stretch'
-                if (overlayPosition == 'Stretch')           ctx.drawImage(overlayImg, 0, 0, width, height)
-                else if (overlayPosition == 'Top left')     ctx.drawImage(overlayImg, 0, 0, overlayWidth, overlayHeight)
-                else if (overlayPosition == 'Top right')    ctx.drawImage(overlayImg, width - overlayWidth, 0, overlayWidth, overlayHeight)
-                else if (overlayPosition == 'Bottom left')  ctx.drawImage(overlayImg, 0, height - overlayHeight, overlayWidth, overlayHeight)
-                else if (overlayPosition == 'Bottom right') ctx.drawImage(overlayImg, width - overlayWidth, height - overlayHeight, overlayWidth, overlayHeight)
+                if (overlayPosition == 'Stretch')           ctx.drawImage(overlayImg, overlayPadding, overlayPadding, width - overlayPadding*2, height - overlayPadding*2)
+                else if (overlayPosition == 'Top left')     ctx.drawImage(overlayImg, overlayPadding, overlayPadding, overlayWidth, overlayHeight)
+                else if (overlayPosition == 'Top right')    ctx.drawImage(overlayImg, width - overlayWidth - overlayPadding, overlayPadding, overlayWidth, overlayHeight)
+                else if (overlayPosition == 'Bottom left')  ctx.drawImage(overlayImg, overlayPadding, height - overlayHeight - overlayPadding, overlayWidth, overlayHeight)
+                else if (overlayPosition == 'Bottom right') ctx.drawImage(overlayImg, width - overlayWidth - overlayPadding, height - overlayHeight - overlayPadding, overlayWidth, overlayHeight)
                 else if (overlayPosition == 'Center')       ctx.drawImage(overlayImg, width/2 - overlayWidth/2, height/2 - overlayHeight/2, overlayWidth, overlayHeight)
 
                 // Generate compressed image
