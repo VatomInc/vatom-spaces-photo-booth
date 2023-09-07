@@ -291,6 +291,13 @@ export default class PhotoBoothPlugin extends BasePlugin {
      */
     deletePhoto = StateBridge.shared.register('deletePhoto', async (photo) => {
 
+        // Ensure we're an admin
+        let isAdmin = await this.user.isAdmin()
+        if (!isAdmin) {
+            console.warn('deletePhoto() called but the user is not an admin!')
+            return
+        }
+
         // Confirm with user
         let confirm = await this.menus.confirm(`Are you sure you want to permanently delete this photo?`, "Delete Photo")
         if (!confirm)
