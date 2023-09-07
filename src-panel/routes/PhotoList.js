@@ -1,5 +1,5 @@
 import React from 'react'
-import { useIsWide, usePhotoDB, useZipper } from '../components/Hooks'
+import { useIsWide, usePhotoDB, useStateBridge, useZipper } from '../components/Hooks'
 import { MenubarButton, Screen } from '../components/SharedUI'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -16,6 +16,9 @@ export const PhotoList = props => {
 
     // Get zipper tool
     const zipper = useZipper()
+
+    // Get state bridge
+    const bridge = useStateBridge()
 
     // Called when the user wants to download all images
     const downloadAll = async () => {
@@ -53,7 +56,7 @@ export const PhotoList = props => {
 
         {/* Show photos */}
         <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-            { photoDB.photos.map(photo => <PhotoIcon key={photo.name} photo={photo} /> )}
+            { photoDB.photos.map(photo => <PhotoIcon key={photo.name} photo={photo} hidden={bridge.state['hide-photo:' + photo.name]} /> )}
         </div>
 
     </Screen>
@@ -82,6 +85,10 @@ const PhotoIcon = props => {
         )
     }
 
+    // Stop if hidden
+    if (props.hidden)
+        return null
+
     // Return UI
     return <div style={{
         display: 'inline-block',
@@ -91,7 +98,7 @@ const PhotoIcon = props => {
         cursor: 'pointer',
         overflow: 'hidden',
         position: 'relative',
-        backgroundImage: `url(${props.photo.thumbnailURL || props.photo.url})`,
+        backgroundImage: `url(${props.photo.thumbnail?.url || props.photo.url})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
     }} onClick={onClick} /> 

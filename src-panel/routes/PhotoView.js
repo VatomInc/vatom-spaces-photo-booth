@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useAsyncMemo, usePhotoDB } from '../components/Hooks'
+import { useAsyncMemo, usePhotoDB, useStateBridge } from '../components/Hooks'
 import { MenubarButton, Screen } from '../components/SharedUI'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -21,6 +21,9 @@ export const PhotoView = props => {
 
     // True if downloading photo
     const [ isDownloading, setIsDownloading ] = useState(false)
+
+    // Get app state
+    const bridge = useStateBridge()
 
     // Get status text
     let statusText = '?'
@@ -86,6 +89,19 @@ export const PhotoView = props => {
         )
     }
 
+    // Called to delete the photo
+    const deletePhoto = async () => {
+
+        // Notify the plugin to perform the action
+        let didDelete = await bridge.remoteActions.deletePhoto(photo)
+        if (!didDelete)
+            return
+
+        // Go back to the previous page
+        navigate(backURL)
+
+    }
+
     // Render UI
     return <Screen
         title="Photo"
@@ -94,7 +110,10 @@ export const PhotoView = props => {
         titlebarRight={<>
 
             {/* Download button */}
-            { photo?.url ? <MenubarButton icon={require('../assets/downloads.svg')} onClick={downloadPhoto} /> : null}
+            { photo?.url ? <MenubarButton icon={require('../assets/downloads.svg')} onClick={downloadPhoto} /> : null }
+
+            {/* Delete button */}
+            { bridge.state.isAdmin ? <MenubarButton icon={require('../assets/trash.svg')} onClick={deletePhoto} /> : null }
 
         </>}
     >

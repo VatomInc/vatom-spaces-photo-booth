@@ -107,7 +107,7 @@ export class PhotoDB extends EventTarget {
                 if (!photo) continue
 
                 // Add thumbnail
-                photo.thumbnailURL = file.url
+                photo.thumbnail = file
 
             }
 

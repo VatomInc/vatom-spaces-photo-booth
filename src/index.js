@@ -78,7 +78,7 @@ export default class PhotoBoothPlugin extends BasePlugin {
 
         // Update shared state
         StateBridge.shared.updateState({
-            isAdmin: await this.user.isAdmin()
+            isAdmin: await this.user.isAdmin(),
         })
 
     }
@@ -147,96 +147,6 @@ export default class PhotoBoothPlugin extends BasePlugin {
                 )
             }
         })
-
-        // Create UI
-        // let panel = await PanelInterface.openPanel('Photo Booth', 'large', `
-        //     <style>
-        //         #photo-list {
-        //             position: absolute;
-        //             top: 0px;
-        //             left: 0px;
-        //             width: 100%;
-        //             height: 100%;
-        //             overflow-x: hidden;
-        //             overflow-y: auto;
-        //             display: flex;
-        //             flex-direction: row;
-        //             flex-wrap: wrap;
-        //             justify-content: space-between;
-        //             align-items: flex-start;
-        //         }
-        //         .notice {
-        //             text-align: center;
-        //             color: #999;
-        //             margin: 50px;
-        //             flex: 1 1 1px;
-        //         }
-        //         .photo {
-        //             display: inline-block;
-        //             position: relative;
-        //             width: calc(25vw - 30px);
-        //             height: calc(20vw - 30px);
-        //             margin: 10px;
-        //             cursor: pointer;
-        //             overflow: hidden;
-        //             box-shadow: 0px 2px 4px rgba(0,0,0,0.2);
-        //             border-radius: 5px;
-        //         }
-        //         .photo.spacer {
-        //             height: 0px;
-        //             box-shadow: none;
-        //             margin-top: 0px;
-        //             margin-bottom: 0px;
-        //         }
-        //         .photo > img {
-        //             position: absolute;
-        //             top: 0%;
-        //             left: 0%;
-        //             width: 100%;
-        //             height: 100%;
-        //             object-fit: cover;
-        //         }
-        //     </style>
-        //     <div id="photo-list">
-        //         <div class='notice'>Loading...</div>
-        //     </div>
-        // `)
-
-        // // Load photos
-        // let userID = await this.user.getID()
-        // let userIDSafe = userID.replace(/[^0-9A-Za-z]/g, '_')
-        // let photos = await this.storage.list('plugin', userIDSafe)
-        
-        // // Sort by name
-        // photos.sort((a, b) => b.name.localeCompare(a.name))
-
-        // // Create output html
-        // let htmlOutput = ''
-        // for (let photo of photos) {
-
-        //     // Add item
-        //     htmlOutput += `<a class='photo' href="${photo.url}" target='_blank' download>
-        //         <img src="${photo.url}" />
-        //     </a>`
-
-        // }
-
-        // // Add notice if no photos found
-        // if (!photos.length) {
-
-        //     // Add notice
-        //     htmlOutput = `<div class='notice'>${this.getField('no-photos-msg') || "No photos found. Look around for a nearby photo booth to take pictures."}</div>`
-
-        // } else {
-
-        //     // Fix alignment of the last row
-        //     for (let i = 0 ; i < 4 ; i++)
-        //         htmlOutput += `<div class='photo spacer'></div>`
-
-        // }
-
-        // // Send to UI
-        // panel.updateElement('#photo-list', htmlOutput)
 
     }
 
@@ -373,6 +283,52 @@ export default class PhotoBoothPlugin extends BasePlugin {
                 await this.menus.closeToast(toastID)
 
         }
+
+    }
+
+    /**
+     * Delete a single photo.
+     */
+    deletePhoto = StateBridge.shared.register('deletePhoto', async (photo) => {
+
+        // Confirm with user
+        let confirm = await this.menus.confirm(`Are you sure you want to permanently delete this photo?`, "Delete Photo")
+        if (!confirm)
+            return
+
+        // Start the process
+        this.deletePhoto2(photo)
+        return true
+
+    })
+
+    async deletePhoto2(photo) {
+
+        // Mark photo as removed
+        StateBridge.shared.updateState({ ['hide-photo:' + photo.name]: true })
+
+        // Try to remove it
+        try {
+
+            // Delete photos
+            let promises = []
+            promises.push(this.storage.delete('plugin', photo.name))
+            if (photo.thumbnail?.name) promises.push(this.storage.delete('plugin', photo.thumbnail.name))
+            await Promise.all(promises)
+
+        } catch (err) {
+
+            // Failed, show error
+            console.warn(`[Photo Booth] Error deleting photo: ${err.message}`)
+            this.menus.alert(err.message, "Error deleting photo", "error")
+
+            // Unmark photo as removed
+            StateBridge.shared.updateState({ ['hide-photo:' + photo.name]: false })
+
+        }
+
+        // Done
+        return true
 
     }
 

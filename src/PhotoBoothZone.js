@@ -361,9 +361,6 @@ export class PhotoBoothZone extends BasePhotoComponent {
 
             ])
 
-            // Save jpeg to file storage
-            await this.plugin.storage.put('plugin', `${userIDSafe}/Photo ${date}.jpg`, photoBlob)
-
             // Done
             console.debug(`[Photo Booth] Photo saved!`)
 

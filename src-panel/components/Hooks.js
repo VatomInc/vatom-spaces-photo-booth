@@ -1,7 +1,6 @@
 import JSZip from "jszip"
 import { PhotoDB } from "../utilities/PhotoDB"
 import React, { useEffect, useMemo, useState } from "react"
-import { useLocation, useNavigate, useNavigationType } from "react-router-dom"
 import { StateBridge } from "../../src/StateBridge"
 
 /** 
