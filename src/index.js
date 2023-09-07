@@ -3,6 +3,7 @@ import { PhotoBoothZone } from './PhotoBoothZone'
 import { PhotoBoothButton } from './PhotoBoothButton'
 import { PanelInterface } from './PanelInterface'
 import { PhotoBoothCamera } from './PhotoBoothCamera'
+import { StateBridge } from './StateBridge'
 
 /**
  * This is the main entry point for your plugin.
@@ -20,7 +21,7 @@ export default class PhotoBoothPlugin extends BasePlugin {
     static name = "Photo Booth"
 
     /** Called on load */
-    onLoad() {
+    async onLoad() {
 
         // Register components
         PhotoBoothButton.register(this)
@@ -74,6 +75,11 @@ export default class PhotoBoothPlugin extends BasePlugin {
 
         // Update dynamic UI
         this.updateUI()
+
+        // Update shared state
+        StateBridge.shared.updateState({
+            isAdmin: await this.user.isAdmin()
+        })
 
     }
 

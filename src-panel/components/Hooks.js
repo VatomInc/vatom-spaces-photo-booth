@@ -2,6 +2,7 @@ import JSZip from "jszip"
 import { PhotoDB } from "../utilities/PhotoDB"
 import React, { useEffect, useMemo, useState } from "react"
 import { useLocation, useNavigate, useNavigationType } from "react-router-dom"
+import { StateBridge } from "../../src/StateBridge"
 
 /** 
  * Gets the photo DB for a space, and re-renders components when it's updated.
@@ -201,5 +202,37 @@ export const useAsyncMemo = (asyncFn, deps) => {
 
     // Done
     return [ result, error, retry ]
+
+}
+
+/**
+ * Hook to get the current app state. Using this hook has the benefit of re-rendering when the state changes.
+ * 
+ * @returns {StateBridge} The current app state.
+ */
+export const useStateBridge = () => {
+
+    // State
+    let [ nonce, setNonce ] = useState(0)
+
+    // Listen for changes
+    useEffect(() => {
+
+        // Update once now, in case we've missed the update
+        setNonce(n => n + 1)
+
+        // Create listener
+        const listener = () => setNonce(n => n + 1)
+
+        // Add listener
+        StateBridge.shared.addEventListener("updated", listener)
+
+        // Remove listener afterwards
+        return () => StateBridge.shared.removeEventListener("updated", listener)
+
+    }, [])
+
+    // Done
+    return StateBridge.shared
 
 }
