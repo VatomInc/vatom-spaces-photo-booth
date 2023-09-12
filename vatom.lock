@@ -1,15 +1,15 @@
 {
   "id": "com.vatom.photobooth",
   "name": "Photo Booth",
-  "version": "1.0.0",
-  "beta": true,
-  "pluginType": "Personal",
-  "description": "Allow users to pose and take photos as a group.",
-  "longDescription": ".",
-  "configuration": ".",
+  "version": "0.0.1",
+  "beta": false,
+  "pluginType": "Business",
+  "description": "Create a photobooth area where guests can take metaverse selfies!",
+  "longDescription": "Step into the Vatom Photobooth, your time capsule within the Metaverse! You can take selfies and group photos of your 3D or Video Avatars to memorialize your time in the space. To take a photo, simply step into the photobooth zone and position yourself in the center area. When you’re ready and everyone can be seen, either use the popup message or click the camera button to start the countdown. 3... 2... 1... SNAP! Once processed, you can now view and download your metaverse memento and explore all the event photos in the public gallery to see everyone else that has participated.",
+  "configuration": "None",
   "category": "Fun",
-  "businessId": ".",
+  "businessId": "ym3t3mPi0g",
   "price": 0,
-  "releaseNotes": ".",
-  "entrypoint": ""
+  "releaseNotes": "Initial release",
+  "entrypoint": "https://plugins.vatom.com/ym3t3mPi0g/123f25b21857db9a11662f9271da74cf/plugin.js"
 }
