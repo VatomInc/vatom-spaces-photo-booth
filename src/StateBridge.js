@@ -30,7 +30,7 @@ export class StateBridge extends EventTarget {
             throw new Error("StateBridge is a singleton, use StateBridge.shared instead of the constructor.")
 
         // Workaround: If we're on the plugin size, we need to wait for the plugin itself to finish loading...
-        if (typeof window == 'undefined' && typeof _bridge != 'undefined') {
+        if (typeof window == 'undefined') {
 
             // Wait until ready
             this.isPluginSide = true

@@ -1,7 +1,7 @@
 {
   "id": "com.vatom.photobooth",
   "name": "Photo Booth",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "beta": false,
   "pluginType": "Business",
   "description": "Create a photobooth area where guests can take metaverse selfies!",
