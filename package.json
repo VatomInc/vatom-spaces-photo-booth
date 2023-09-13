@@ -1,6 +1,6 @@
 {
   "name": "vatom-spaces-photo-booth",
-  "version": "1.0.1",
+  "version": "0.1.0",
   "description": "A plugin for Vatom Spaces.",
   "main": "src/index.js",
   "private": true,
