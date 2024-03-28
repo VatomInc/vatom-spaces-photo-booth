@@ -148,19 +148,23 @@ export class PhotoBoothZone extends BasePhotoComponent {
         // Check message
         if (data.action == 'remote:activate-photo-booth') {
 
-            // Activate as well, if we are inside the zone
-            if (this.isInside) {
+            // Triggered when a remote user starts taking a photo. Stop if not inside the zone.
+            if (!this.isInside)
+                return console.debug(`[Photo Booth] Remote user ${data.username} (${data.userID}) triggered the photo booth, but we're not inside the zone. Ignoring.`)
 
-                // Start the process
-                console.info(`[Photo Booth] Remote user ${data.username} (${data.userID}) triggered the photo booth.`)
-                this.activate({ userID: data.userID, username: data.username })
+            // Start the process
+            console.info(`[Photo Booth] Remote user ${data.username} (${data.userID}) triggered the photo booth.`)
+            this.activate({ userID: data.userID, username: data.username })
 
-            } else {
+        } else if (data.action == 'remote:activate-photo-booth-complete') {
 
-                // Ignore since we're not inside the zone
-                console.debug(`[Photo Booth] Remote user ${data.username} (${data.userID}) triggered the photo booth, but we're not inside the zone.`)
+            // Triggered when a remote user has finished saving a new photo to this zone. Stop if not inside the zone.
+            if (!this.isInside)
+                return console.debug(`[Photo Booth] Remote user ${data.username} (${data.userID}) saved a photo to the photo booth, but we're not inside the zone. Ignoring.`)
 
-            }
+            // Show photo complete toast
+            console.info(`[Photo Booth] Remote user ${data.username} (${data.userID}) saved a photo to the photo booth.`)
+            this.showCompletionToast()
 
         }
 
@@ -365,26 +369,14 @@ export class PhotoBoothZone extends BasePhotoComponent {
             console.debug(`[Photo Booth] Photo saved!`)
 
             // Show completion toast
-            this.toastID = await this.plugin.menus.toast({
-                id:                 this.toastID,
-                text:               'Photo saved!',
-                isSticky:           true,
-                buttonText:         this.plugin.getField('hide-gallery') ? undefined : 'View Photos',
-                buttonAction:       this.plugin.getField('hide-gallery') ? undefined : () => {
-                    this.plugin.menus.closeToast(this.toastID)
-                    this.toastID = null
-                    this.plugin.openPhotoList()
-                    this.onExitedZone()
-                    this.isInside = false
-                },
-                buttonCancelText:   'Close',
-                buttonCancelAction: () => {
-                    this.plugin.menus.closeToast(this.toastID)
-                    this.toastID = false
-                    this.onExitedZone()
-                    this.isInside = false
-                }
-            })
+            await this.showCompletionToast()
+            
+            // Notify remote users
+            this.sendMessage({ 
+                action: 'remote:activate-photo-booth-complete',
+                userID: await this.plugin.user.getID(),
+                username: await this.plugin.user.getDisplayName(),
+            }, true)
 
         } catch (err) {
 
@@ -403,6 +395,35 @@ export class PhotoBoothZone extends BasePhotoComponent {
             this._isActivating = false
 
         }
+
+    }
+
+    /**
+     * Shows the toast UI informing that a photo was taken.
+     */
+    async showCompletionToast() {
+        
+        // Show toast
+        this.toastID = await this.plugin.menus.toast({
+            id:                 this.toastID,
+            text:               'Photo saved!',
+            isSticky:           true,
+            buttonText:         this.plugin.getField('hide-gallery') ? undefined : 'View Photos',
+            buttonAction:       this.plugin.getField('hide-gallery') ? undefined : () => {
+                this.plugin.menus.closeToast(this.toastID)
+                this.toastID = null
+                this.plugin.openPhotoList()
+                this.onExitedZone()
+                this.isInside = false
+            },
+            buttonCancelText:   'Close',
+            buttonCancelAction: () => {
+                this.plugin.menus.closeToast(this.toastID)
+                this.toastID = false
+                this.onExitedZone()
+                this.isInside = false
+            }
+        })
 
     }
 
