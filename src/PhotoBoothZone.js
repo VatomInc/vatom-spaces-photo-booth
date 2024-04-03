@@ -47,6 +47,11 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 { id: 'overlay-padding', name: 'Overlay padding', type: 'number', default: 0, help: `Number of pixels from the edge of the screen to offset the overlay image by.` },
                 // { id: 'use-nearby-camera', name: 'Use nearby camera', help: `If enabled, the nearest camera will be used when taking the photo. If disabled, will use the user's current viewport camera.`, type: 'checkbox' },
 
+                // Subject section
+                { id: 'lbl-subject', type: 'section', name: 'Subject' },
+                { id: 'subject-face-camera', name: 'Face Camera', type: 'checkbox', help: `If enabled, users inside the zone will face the direction of the Photo Booth's associated Camera. If no camera is linked to this zone, the user will face forward instead.` },
+                { id: 'subject-face-camera-extra-rotation', name: 'Extra Rotation', type: 'slider', default: 0, min: 0, max: 360, showValue: true, help: `Extra rotation to apply to the user's rotation when facing the camera.` },
+
             ]
         })
 
@@ -79,8 +84,17 @@ export class PhotoBoothZone extends BasePhotoComponent {
         if (this._isActivating)
             return
 
+        // Get current position
+        this.userPosition = await this.plugin.user.getPosition()
+        if (this.userPosition.x !== this._lastUserX || this.userPosition.y !== this._lastUserY || this.userPosition.z !== this._lastUserZ) {
+            this._lastUserX = this.userPosition.x
+            this._lastUserY = this.userPosition.y
+            this._lastUserZ = this.userPosition.z
+            this.onUserMoved()
+        }
+
         // Check if changed
-        let isInside = await isInsizeZone(this.fields)
+        let isInside = await isInsizeZone(this.fields, this.userPosition)
         if (isInside === this.isInside)
             return
 
@@ -424,6 +438,57 @@ export class PhotoBoothZone extends BasePhotoComponent {
                 this.isInside = false
             }
         })
+
+    }
+
+    /** Called when the user's position changes */
+    onUserMoved() {
+
+        // Clear old idle timer
+        if (this.idleTimer) {
+            clearTimeout(this.idleTimer)
+            this.idleTimer = null
+        }
+
+        // Stop if not inside a zone
+        if (!this.isInside)
+            return
+
+        // Start a timer to check when the user stops moving
+        this.idleTimer = setTimeout(() => {
+            this.idleTimer = null
+            this.onUserIdleInsideZone()
+        }, 500)
+
+    }
+
+    /** Called when the user stops moving around inside the zone */
+    async onUserIdleInsideZone() {
+
+        // Stop if the Face Camera option is disabled
+        if (!this.getField('subject-face-camera'))
+            return
+
+        // Find angle towards linked camera
+        let angleDegrees = 0
+        let camera = this.plugin.objects.getComponentInstances().find(c => c.isPhotoBoothCamera && c.associatedZone == this)
+        if (camera) {
+
+            // Get angle between the current user's position and the camera's position
+            let dx = camera.fields.world_center_x - this.userPosition.x
+            let dz = camera.fields.world_center_z - this.userPosition.z
+            angleDegrees = Math.atan2(dz, dx) * 180 / Math.PI
+
+            // Rotate 180 degrees to face the camera
+            angleDegrees += 180
+
+        }
+
+        // Apply extra rotation
+        angleDegrees += parseFloat(this.getField('subject-face-camera-extra-rotation')) || 0
+
+        // Apply orientation to the avatar
+        await this.plugin.user.setAvatarOrientation(angleDegrees * Math.PI / 180, false)
 
     }
 

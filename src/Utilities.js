@@ -13,11 +13,15 @@ export function getPlugin() {
 
 /**
  * Checks if the user is inside a zone.
+ * 
+ * @param {Object} zoneFields The zone fields
+ * @param {Object} userPos The user's position, result of `plugin.user.getPosition()`. Can be null to fetch it automatically.
  */
-export async function isInsizeZone(zoneFields) {
+export async function isInsizeZone(zoneFields, userPos = null) {
 
     // Get user's position
-    let userPos = await getPlugin().user.getPosition()
+    if (!userPos)
+        userPos = await getPlugin().user.getPosition()
 
     // Check if insize the zone
     let minX = zoneFields.world_center_x - zoneFields.world_bounds_x/2
